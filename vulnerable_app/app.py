@@ -1,28 +1,28 @@
 #!/usr/bin/env python3
 """
-secure-ci-pipeline demo target — Flask application (SECURE baseline).
+secure-ci-pipeline demo target — Flask application (INTENTIONALLY VULNERABLE).
 
-This is the clean version that lives on the ``main`` branch. The three classes
-of vulnerability that the pipeline is built to catch have been fixed here, so
-``main``'s pipeline passes green.
+This is the vulnerable version that lives on the ``add-user-feature`` branch. It
+contains exactly three planted vulnerabilities, each marked with an
+``# INTENTIONALLY VULNERABLE`` comment, plus one outdated dependency pinned in
+requirements.txt. Opened as a pull request against ``main``, its pipeline fails
+the security gate and the merge is blocked.
 
-The intentionally-vulnerable version of this same app lives on the
-``add-user-feature`` branch, where the pipeline blocks the pull request. Compare
-the two to see the exact fix for each issue:
+    1. SQL injection             -> caught by SAST (Semgrep)
+    2. Reflected XSS             -> caught by DAST (OWASP ZAP)
+    3. IDOR / broken access ctrl -> typically MISSED by both SAST and DAST
 
-    * /user     — SQL injection      -> fixed with a parameterised query
-    * /greet    — Reflected XSS       -> fixed with an autoescaping template
-    * /account  — IDOR / broken access-> fixed with an ownership check
+The secure version of this same app lives on ``main``; compare the two to see
+the fix for each issue.
 
-WARNING: this app is a scan target for a security demo. Do not expose it
-publicly even in this clean state.
+WARNING: this application is deliberately insecure. Never deploy it publicly.
 """
 from __future__ import annotations
 
 import sqlite3
 from pathlib import Path
 
-from flask import Flask, jsonify, render_template_string, request
+from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
@@ -97,15 +97,13 @@ def get_user():
     conn = get_db()
     cur = conn.cursor()
 
-    # SECURE: the username is passed as a bound parameter, so it is treated as
-    # data and cannot alter the structure of the query (no SQL injection).
-    rows = [
-        dict(r)
-        for r in cur.execute(
-            "SELECT id, username, email FROM users WHERE username = ?",
-            (username,),
-        ).fetchall()
-    ]
+    # INTENTIONALLY VULNERABLE: SQL injection
+    # The username is concatenated straight into the SQL string instead of being
+    # passed as a bound parameter, so input such as  alice' OR '1'='1  changes
+    # the meaning of the query. Semgrep's formatted-sql-query rule flags this at
+    # build time (a static, source-visible pattern).
+    query = "SELECT id, username, email FROM users WHERE username = '%s'" % username
+    rows = [dict(r) for r in cur.execute(query).fetchall()]
 
     conn.close()
     return jsonify(results=rows)
@@ -116,23 +114,28 @@ def greet():
     """Return a personalised greeting for the supplied name."""
     name = request.args.get("name", "friend")
 
-    # SECURE: the value is rendered through Jinja, which autoescapes it. A
-    # payload such as <script>alert(1)</script> is HTML-encoded and rendered
-    # inert instead of executing (no reflected XSS). Note the template is a
-    # constant and the input is passed as a context variable, so there is no
-    # server-side template injection either.
-    return render_template_string("<h1>Hello, {{ name }}!</h1>", name=name)
+    # INTENTIONALLY VULNERABLE: Reflected XSS
+    # User input is reflected into the HTML response with no output encoding, so
+    # a payload such as  <script>alert(1)</script>  executes in the victim's
+    # browser. This is a runtime behaviour, so a DAST scan (OWASP ZAP) exercising
+    # the live endpoint is what surfaces it.
+    return "<h1>Hello, " + name + "!</h1>"
 
 
 @app.route("/account/<int:account_id>")
 def get_account(account_id: int):
-    """Fetch a bank account by its numeric ID, enforcing ownership."""
-    # In a real app the current user id comes from the authenticated session;
-    # here we read it from a header that an auth middleware would populate.
-    current_user_id = request.headers.get("X-User-Id", type=int)
-
+    """Fetch a bank account by its numeric ID."""
     conn = get_db()
     cur = conn.cursor()
+
+    # INTENTIONALLY VULNERABLE: IDOR / broken access control
+    # The query itself is safely parameterised, but the account is returned
+    # purely on the supplied ID with NO ownership / authorisation check. In a
+    # real app the caller would be authenticated and we would verify that the
+    # current user actually owns `account_id` before returning it. Because the
+    # code looks correct (no injection, valid 200 response), SAST and DAST both
+    # typically MISS this — only auth-aware testing or business-logic review
+    # catches it. See the "What automated scanners miss" section of the README.
     row = cur.execute(
         "SELECT id, owner_id, balance, iban FROM accounts WHERE id = ?",
         (account_id,),
@@ -141,13 +144,6 @@ def get_account(account_id: int):
 
     if row is None:
         return jsonify(error="account not found"), 404
-
-    # SECURE: enforce that the caller actually owns this account before
-    # returning it (fixes the IDOR / broken-access-control flaw). Without this
-    # check any user could enumerate and read every account.
-    if current_user_id is None or row["owner_id"] != current_user_id:
-        return jsonify(error="forbidden"), 403
-
     return jsonify(dict(row))
 
 

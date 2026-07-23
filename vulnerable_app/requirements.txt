@@ -1,13 +1,19 @@
-# Runtime dependencies for the demo app — SECURE baseline (main branch).
-#
-# Pinned to current, patched releases. These resolve clean under pip-audit on
-# the CI Python (3.12); the fixes for the most recent advisories require
-# Python >= 3.10, which the pipeline uses.
-#
-# The add-user-feature branch adds an outdated, CVE-affected dependency on top
-# of this set to demonstrate the dependency scanner blocking a pull request.
+# Runtime dependencies for the demo app — add-user-feature branch.
+# Same patched base stack as main, but with one outdated, CVE-affected
+# dependency added, to demonstrate the dependency scanner blocking the PR.
 Flask==3.1.3
 Werkzeug==3.1.8
 Jinja2==3.1.6
 click==8.3.3
 gunicorn==23.0.0
+
+# INTENTIONALLY VULNERABLE: pinned to a release with a known CVE.
+# requests 2.19.1 is affected by CVE-2018-18074 (CVSS 9.8) — it leaks the
+# Authorization header on an https -> http redirect. Fixed in 2.20.0.
+# pip-audit and Trivy both report this, and the quality gate blocks on it.
+#
+# NOTE: this is declared here but deliberately NOT imported by app.py. requests
+# 2.19.1 pulls in urllib3 1.23, which fails to import on Python 3.10+ (it uses
+# the removed collections.Mapping). Declaring-without-importing keeps the app
+# runnable for the ZAP scan while still tripping the dependency scanners.
+requests==2.19.1
