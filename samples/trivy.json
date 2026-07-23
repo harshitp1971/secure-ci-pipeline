@@ -1,10 +1,10 @@
 {
   "SchemaVersion": 2,
-  "ArtifactName": "cerberus-vulnerable-app:ci",
+  "ArtifactName": "secure-ci-pipeline-app:ci",
   "ArtifactType": "container_image",
   "Results": [
     {
-      "Target": "cerberus-vulnerable-app:ci (debian 12.5)",
+      "Target": "secure-ci-pipeline-app:ci (debian 12.5)",
       "Class": "os-pkgs",
       "Type": "debian",
       "Vulnerabilities": [

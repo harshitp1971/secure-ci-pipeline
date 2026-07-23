@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Cerberus demo target — Flask application (SECURE baseline).
+secure-ci-pipeline demo target — Flask application (SECURE baseline).
 
 This is the clean version that lives on the ``main`` branch. The three classes
 of vulnerability that the pipeline is built to catch have been fixed here, so
@@ -75,7 +75,7 @@ def init_db() -> None:
 def index():
     """Landing page. The links let the ZAP spider discover the routes below."""
     return (
-        "<h1>Cerberus Demo Bank</h1>"
+        "<h1>Demo Bank</h1>"
         "<ul>"
         '<li><a href="/user?username=alice">Look up a user</a></li>'
         '<li><a href="/greet?name=World">Greeting</a></li>'

@@ -1,9 +1,9 @@
-# 🛡️ Cerberus — a DevSecOps CI/CD security pipeline
+# 🛡️ secure-ci-pipeline — a DevSecOps CI/CD security gate
 
-> Cerberus, the many-headed guardian, is a GitHub Actions pipeline that runs a
-> layered set of security scanners on every commit and pull request, then feeds
-> all of their output into a single, policy-driven **quality gate** that blocks
-> deployment when High or Critical issues are present.
+> secure-ci-pipeline is a GitHub Actions pipeline that runs a layered set of
+> security scanners on every commit and pull request, then feeds all of their
+> output into a single, policy-driven **quality gate** that blocks deployment
+> when High or Critical issues are present.
 
 The interesting part of this project is not any one scanner — those are all
 off-the-shelf and open-source. It is the **centralised gate** (`gate/gate.py`):
@@ -37,13 +37,13 @@ decision from a version-controlled policy.
 - [Running it locally](#running-it-locally)
 - [The CI/CD pipeline](#the-cicd-pipeline)
 - [What automated scanners miss](#what-automated-scanners-miss)
-- [Extending Cerberus](#extending-cerberus)
+- [Extending the pipeline](#extending-the-pipeline)
 
 ---
 
 ## Overview
 
-Cerberus demonstrates a practical "shift-left" security pipeline that a team can
+secure-ci-pipeline demonstrates a practical "shift-left" security pipeline that a team can
 run entirely for free, with no cloud account and no paid tooling. On every push
 and pull request it:
 
@@ -108,7 +108,7 @@ flowchart LR
     E --> F[Trivy<br/>container scan]
     F --> G[Start app<br/>live target]
     G --> H[OWASP ZAP<br/>DAST]
-    H --> I{{Cerberus gate<br/>normalise + policy}}
+    H --> I{{Quality gate<br/>normalise + policy}}
     I -->|violations| J[❌ Fail build<br/>deploy skipped]
     I -->|clean| K[✅ Deploy to staging]
 
@@ -140,7 +140,7 @@ deploy job — which `needs:` the pipeline job — is therefore never reached.
 ## Repository layout
 
 ```
-devsecops-pipeline/
+secure-ci-pipeline/
 ├── .github/workflows/security.yml   # the CI/CD pipeline
 ├── vulnerable_app/                  # intentionally-vulnerable Flask app (scan target)
 │   ├── app.py                       #   3 planted vulns: SQLi, XSS, IDOR
@@ -164,12 +164,12 @@ devsecops-pipeline/
 
 ## The scanners — what each one catches
 
-Cerberus deliberately layers several classes of tool, because each one sees a
+secure-ci-pipeline deliberately layers several classes of tool, because each one sees a
 different slice of the risk surface.
 
 | Stage | Tool | Class | What it catches | Blocks the build? |
 | --- | --- | --- | --- | --- |
-| Secrets | **Gitleaks** | Secret scanning | Hard-coded API keys, tokens, credentials in the repo | Informational (see [Extending](#extending-cerberus)) |
+| Secrets | **Gitleaks** | Secret scanning | Hard-coded API keys, tokens, credentials in the repo | Informational (see [Extending](#extending-the-pipeline)) |
 | SAST | **Semgrep** | Static analysis | Insecure *code* patterns — e.g. string-formatted SQL, unsafe deserialisation | Yes (High/Critical) |
 | Dependencies | **pip-audit** | Software composition analysis | Known CVEs in third-party Python packages | Yes (High/Critical) |
 | Container | **Trivy** | Image / OS scanning | CVEs in the base image OS packages and installed libraries | Yes (Critical) |
@@ -245,7 +245,7 @@ Example gate output (run against the bundled samples):
 
 ```
 ====================================================================
-  CERBERUS SECURITY QUALITY GATE
+  SECURE-CI-PIPELINE SECURITY QUALITY GATE
 ====================================================================
   Scanners parsed : semgrep, pip-audit, trivy, zap
   Findings        : 11 total  ->  CRITICAL=2  HIGH=5  MEDIUM=2  LOW=1  INFO=1
@@ -376,7 +376,7 @@ pinned. The steps run in this order:
 | 1 | Secret scan (Gitleaks) | `artifacts/gitleaks.json` | No (informational) |
 | 2 | SAST (Semgrep) | `artifacts/semgrep.json` | No — the gate decides |
 | 3 | Dependency scan (pip-audit) | `artifacts/pip-audit.json` | No — the gate decides |
-| 4 | Build Docker image | `cerberus-vulnerable-app:ci` | Build failure fails the job |
+| 4 | Build Docker image | `secure-ci-pipeline-app:ci` | Build failure fails the job |
 | 5 | Container scan (Trivy) | `artifacts/trivy.json` | No — the gate decides |
 | 6 | DAST (OWASP ZAP baseline) | `artifacts/zap.json` | No — the gate decides |
 | 7 | **Quality gate** (`gate.py`) | `artifacts/security-report.md` | **Yes — the one decision point** |
@@ -438,7 +438,7 @@ common and most serious real-world vulnerability classes, and it is precisely th
 kind of **business-logic** flaw that tooling struggles with. The takeaway that
 this project is built to make concrete:
 
-> **Automated scanning is necessary but not sufficient.** A gate like Cerberus
+> **Automated scanning is necessary but not sufficient.** A gate like this one
 > raises the floor and catches regressions cheaply on every commit, but it does
 > not replace threat modelling, authorisation-aware testing, and manual security
 > review. Use the automation to free up human attention for the logic flaws that
@@ -446,7 +446,7 @@ this project is built to make concrete:
 
 ---
 
-## Extending Cerberus
+## Extending the pipeline
 
 The gate is built to grow. Some natural next steps:
 

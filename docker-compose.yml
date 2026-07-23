@@ -10,8 +10,8 @@
 services:
   vulnerable-app:
     build: ./vulnerable_app
-    image: cerberus-vulnerable-app:ci
-    container_name: cerberus-vulnerable-app
+    image: secure-ci-pipeline-app:ci
+    container_name: secure-ci-pipeline-app
     ports:
       - "5000:5000"
     healthcheck:

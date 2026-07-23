@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------
-# Cerberus security policy
+# secure-ci-pipeline security policy
 # ---------------------------------------------------------------------------
 # This file is the single, version-controlled source of truth for what blocks a
 # deployment. The gate (gate/gate.py) reads it, so changing security posture is

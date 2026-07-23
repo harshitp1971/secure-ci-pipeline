@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Cerberus — Markdown report renderer.
+secure-ci-pipeline — Markdown report renderer.
 
 Turns a list of normalised :class:`gate.Finding` objects into a readable
 Markdown security report: a severity summary table followed by one section per
@@ -55,7 +55,7 @@ def render_markdown(findings: List, policy: Optional[dict] = None) -> str:
     generated = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     lines: List[str] = []
 
-    lines.append("# 🛡️ Cerberus Security Report")
+    lines.append("# 🛡️ secure-ci-pipeline Security Report")
     lines.append("")
     lines.append(f"_Generated: {generated}_")
     lines.append("")

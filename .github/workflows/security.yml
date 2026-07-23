@@ -1,4 +1,4 @@
-name: Cerberus DevSecOps Pipeline
+name: secure-ci-pipeline
 
 # Run on every push to main and — crucially for the PR-blocks-merge demo — on
 # every pull request that targets main, plus on-demand.
@@ -67,7 +67,7 @@ jobs:
             --progress-spinner=off || true
 
       # ---- 4) BUILD IMAGE --------------------------------------------------
-      # docker-compose tags the image as cerberus-vulnerable-app:ci, which the
+      # docker-compose tags the image as secure-ci-pipeline-app:ci, which the
       # Trivy scan then references.
       - name: Build Docker image
         run: docker compose build
@@ -77,7 +77,7 @@ jobs:
         continue-on-error: true
         uses: aquasecurity/trivy-action@0.24.0
         with:
-          image-ref: cerberus-vulnerable-app:ci
+          image-ref: secure-ci-pipeline-app:ci
           format: json
           output: artifacts/trivy.json
           severity: CRITICAL,HIGH,MEDIUM,LOW

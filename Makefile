@@ -1,4 +1,4 @@
-# Cerberus — convenience targets for local use.
+# secure-ci-pipeline — convenience targets for local use.
 # The CI pipeline does not depend on this file; it is purely for developers.
 
 PYTHON ?= python3

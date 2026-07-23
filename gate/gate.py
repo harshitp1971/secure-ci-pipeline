@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Cerberus — the centralised security quality gate.
+secure-ci-pipeline — the centralised security quality gate.
 
 This module is the single decision point of the whole pipeline. Every scanner in
 the CI workflow writes its native JSON report into an ``artifacts/`` directory;
@@ -488,7 +488,7 @@ def print_summary(result: GateResult, policy: dict) -> None:
     """Print a clear, CI-friendly summary of the gate evaluation."""
     line = "=" * 68
     print(line)
-    print("  CERBERUS SECURITY QUALITY GATE")
+    print("  SECURE-CI-PIPELINE SECURITY QUALITY GATE")
     print(line)
 
     # Which scanners contributed data.
@@ -528,7 +528,7 @@ def print_summary(result: GateResult, policy: dict) -> None:
 # ---------------------------------------------------------------------------
 def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Cerberus — centralised security quality gate."
+        description="secure-ci-pipeline — centralised security quality gate."
     )
     parser.add_argument(
         "--artifacts",
