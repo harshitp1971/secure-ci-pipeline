@@ -1,0 +1,58 @@
+# ---------------------------------------------------------------------------
+# Cerberus security policy
+# ---------------------------------------------------------------------------
+# This file is the single, version-controlled source of truth for what blocks a
+# deployment. The gate (gate/gate.py) reads it, so changing security posture is
+# a reviewable pull request rather than an edit buried in CI YAML.
+#
+# Severity scale (most -> least severe):  critical | high | medium | low | info
+# ---------------------------------------------------------------------------
+
+# Global blocking threshold. A finding at any of these severities fails the
+# build, unless a per-tool override or a suppression applies.
+block_on:
+  - critical
+  - high
+
+# Optional per-tool overrides. If a tool is listed here, its `block_on` replaces
+# the global one for that tool's findings only.
+tools:
+  semgrep:
+    # SAST results are high-signal for our own code; keep them strict.
+    block_on: [critical, high]
+
+  pip-audit:
+    block_on: [critical, high]
+    # pip-audit's JSON usually omits a severity. Treat any known-vulnerable
+    # dependency as "high" by default — a deliberate fail-safe posture.
+    default_severity: high
+
+  trivy:
+    # Base-image OS CVEs are numerous and often un-fixable in the short term.
+    # Block only on CRITICAL here and track HIGH/MEDIUM as visible-but-allowed,
+    # so the pipeline stays actionable instead of permanently red. This is the
+    # per-tool override in action.
+    block_on: [critical]
+
+  zap:
+    # DAST high-risk alerts (e.g. reflected XSS) must block.
+    block_on: [critical, high]
+
+# Accepted risk / triaged false positives. Each entry removes a specific finding
+# from the blocking set. A `reason` is mandatory in practice (peer-reviewed),
+# and an optional `tool` scopes the suppression to one scanner so the same
+# rule_id from a different tool is not silently hidden.
+suppressions:
+  - rule_id: CVE-2023-45853
+    tool: trivy
+    reason: >-
+      Accepted risk (ticket SEC-207): this zlib flaw is in minizip's
+      zipOpenNewFileInZip4_64, which this image does not use and cannot reach.
+      No fixed Debian package is available yet. Re-review by 2026-09-30.
+
+  - rule_id: "10096"
+    tool: zap
+    reason: >-
+      False positive: ZAP flags the epoch value returned by /health as a
+      timestamp disclosure. It is a non-sensitive liveness value, not secret
+      data.

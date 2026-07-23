@@ -1,0 +1,23 @@
+# docker-compose definition for the demo app.
+#
+# Used two ways:
+#   * locally, to run the app (`docker compose up`)
+#   * in CI, to build the image (`docker compose build`), bring the app up as a
+#     live target for the ZAP DAST scan, and as the gated "staging deploy" step.
+#
+# The `image:` tag is fixed so the Trivy container scan can reference it.
+
+services:
+  vulnerable-app:
+    build: ./vulnerable_app
+    image: cerberus-vulnerable-app:ci
+    container_name: cerberus-vulnerable-app
+    ports:
+      - "5000:5000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:5000/health').status==200 else 1)"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped

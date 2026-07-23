@@ -1,0 +1,33 @@
+{
+  "dependencies": [
+    {
+      "name": "requests",
+      "version": "2.19.1",
+      "vulns": [
+        {
+          "id": "PYSEC-2018-28",
+          "fix_versions": ["2.20.0"],
+          "aliases": ["CVE-2018-18074"],
+          "description": "The requests package before 2.20.0 sends an HTTP Authorization header to an http URI upon receiving a same-hostname https-to-http redirect, which exposes credentials to network attackers."
+        },
+        {
+          "id": "PYSEC-2023-74",
+          "fix_versions": ["2.31.0"],
+          "aliases": ["CVE-2023-32681"],
+          "description": "requests leaks Proxy-Authorization headers to destination servers when redirected to an HTTPS endpoint."
+        }
+      ]
+    },
+    {
+      "name": "flask",
+      "version": "2.2.5",
+      "vulns": []
+    },
+    {
+      "name": "gunicorn",
+      "version": "21.2.0",
+      "vulns": []
+    }
+  ],
+  "fixes": []
+}

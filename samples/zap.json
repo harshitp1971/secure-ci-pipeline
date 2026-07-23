@@ -1,0 +1,62 @@
+{
+  "@version": "2.14.0",
+  "@generated": "Tue, 21 Jul 2026 10:00:00",
+  "site": [
+    {
+      "@name": "http://localhost:5000",
+      "@host": "localhost",
+      "@port": "5000",
+      "@ssl": "false",
+      "alerts": [
+        {
+          "pluginid": "40012",
+          "alertRef": "40012-1",
+          "alert": "Cross Site Scripting (Reflected)",
+          "name": "Cross Site Scripting (Reflected)",
+          "riskcode": "3",
+          "confidence": "2",
+          "riskdesc": "High (Medium)",
+          "cweid": "79",
+          "wascid": "8",
+          "desc": "Reflected cross-site scripting occurs when user-supplied input is returned in the response without adequate encoding.",
+          "instances": [
+            {
+              "uri": "http://localhost:5000/greet?name=%3Cscript%3Ealert%281%29%3C%2Fscript%3E",
+              "method": "GET",
+              "param": "name",
+              "evidence": "<script>alert(1)</script>"
+            }
+          ]
+        },
+        {
+          "pluginid": "10038",
+          "alertRef": "10038-1",
+          "alert": "Content Security Policy (CSP) Header Not Set",
+          "name": "Content Security Policy (CSP) Header Not Set",
+          "riskcode": "2",
+          "confidence": "3",
+          "riskdesc": "Medium (High)",
+          "cweid": "693",
+          "wascid": "15",
+          "instances": [
+            { "uri": "http://localhost:5000/", "method": "GET" }
+          ]
+        },
+        {
+          "pluginid": "10096",
+          "alertRef": "10096-1",
+          "alert": "Timestamp Disclosure - Unix",
+          "name": "Timestamp Disclosure - Unix",
+          "riskcode": "1",
+          "confidence": "1",
+          "riskdesc": "Low (Low)",
+          "cweid": "200",
+          "wascid": "13",
+          "instances": [
+            { "uri": "http://localhost:5000/health", "method": "GET" }
+          ]
+        }
+      ]
+    }
+  ]
+}

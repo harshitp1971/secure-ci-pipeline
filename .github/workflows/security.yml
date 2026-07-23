@@ -1,0 +1,167 @@
+name: Cerberus DevSecOps Pipeline
+
+# Run on every push to main and — crucially for the PR-blocks-merge demo — on
+# every pull request that targets main, plus on-demand.
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+# Least-privilege token: the pipeline only needs to read the repository.
+permissions:
+  contents: read
+
+jobs:
+  # ==========================================================================
+  # All scanning, building, gating and reporting happens in this single job so
+  # that every scanner writes into one shared artifacts/ directory on one
+  # runner. The gate step is the one authoritative pass/fail decision.
+  # ==========================================================================
+  security-pipeline:
+    name: Scan, gate & report
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install gate & scanner tooling
+        run: |
+          python -m pip install --upgrade pip
+          pip install "pyyaml==6.0.2" "semgrep==1.85.0" "pip-audit==2.7.3"
+
+      - name: Prepare artifacts directory
+        run: mkdir -p artifacts
+
+      # ---- 1) SECRET SCAN --------------------------------------------------
+      # Gitleaks is defence-in-depth. It runs as an informational, non-blocking
+      # check (the gate does not currently parse it — see README "Extending").
+      - name: Secret scan (Gitleaks)
+        continue-on-error: true
+        run: |
+          docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:v8.18.4 \
+            detect --source="/repo" --no-git \
+            --report-format=json --report-path="/repo/artifacts/gitleaks.json" \
+            --exit-code=0
+
+      # ---- 2) SAST ---------------------------------------------------------
+      - name: SAST (Semgrep)
+        continue-on-error: true
+        run: |
+          semgrep scan --config=auto --json \
+            --output=artifacts/semgrep.json vulnerable_app/ || true
+
+      # ---- 3) DEPENDENCY SCAN ---------------------------------------------
+      - name: Dependency scan (pip-audit)
+        continue-on-error: true
+        run: |
+          pip-audit --requirement vulnerable_app/requirements.txt \
+            --format=json --output=artifacts/pip-audit.json \
+            --progress-spinner=off || true
+
+      # ---- 4) BUILD IMAGE --------------------------------------------------
+      # docker-compose tags the image as cerberus-vulnerable-app:ci, which the
+      # Trivy scan then references.
+      - name: Build Docker image
+        run: docker compose build
+
+      # ---- 5) CONTAINER SCAN ----------------------------------------------
+      - name: Container image scan (Trivy)
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: cerberus-vulnerable-app:ci
+          format: json
+          output: artifacts/trivy.json
+          severity: CRITICAL,HIGH,MEDIUM,LOW
+          vuln-type: os,library
+          exit-code: "0"
+
+      # ---- 6a) Bring the app up as a live DAST target ---------------------
+      - name: Start application (test target)
+        run: |
+          docker compose up -d
+          echo "Waiting for the app to become healthy..."
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:5000/health >/dev/null 2>&1; then
+              echo "App is up."; exit 0
+            fi
+            sleep 2
+          done
+          echo "App did not become healthy in time" >&2
+
+      # ---- 6b) DAST --------------------------------------------------------
+      # OWASP ZAP baseline (passive) scan. fail_action:false keeps ZAP itself
+      # non-blocking — the gate decides. `-J zap.json` emits the JSON report.
+      - name: DAST (OWASP ZAP baseline)
+        continue-on-error: true
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+          target: http://localhost:5000
+          fail_action: false
+          allow_issue_writing: false
+          cmd_options: "-J zap.json -I"
+
+      - name: Collect ZAP report
+        if: always()
+        run: |
+          if [ -f zap.json ]; then cp zap.json artifacts/zap.json;
+          elif [ -f report_json.json ]; then cp report_json.json artifacts/zap.json;
+          else echo '{}' > artifacts/zap.json; fi
+
+      # ---- 7) THE GATE -----------------------------------------------------
+      # The single authoritative decision. Exits non-zero on any policy
+      # violation, which fails this job and therefore skips the deploy job.
+      - name: Security quality gate
+        run: |
+          python gate/gate.py \
+            --artifacts artifacts \
+            --policy gate/policy.yml \
+            --report artifacts/security-report.md
+
+      # ---- Always publish evidence, even when the gate blocks -------------
+      - name: Upload scan artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-scan-results
+          path: artifacts/
+          if-no-files-found: warn
+
+      - name: Upload Markdown report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-report
+          path: artifacts/security-report.md
+          if-no-files-found: warn
+
+      - name: Tear down application
+        if: always()
+        run: docker compose down --remove-orphans || true
+
+  # ==========================================================================
+  # 8) DEPLOY — only runs if security-pipeline (including the gate) succeeded.
+  # `needs:` gives us the gating for free: a failed gate fails the upstream job,
+  # so this job never starts.
+  # ==========================================================================
+  deploy:
+    name: Deploy to staging
+    needs: security-pipeline
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy (docker-compose up)
+        run: |
+          echo "Security gate passed — promoting to staging."
+          docker compose up -d
+          docker compose ps

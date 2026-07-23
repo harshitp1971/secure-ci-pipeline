@@ -1,0 +1,31 @@
+{
+  "version": "1.85.0",
+  "results": [
+    {
+      "check_id": "python.sqlite.security.formatted-sql-query.formatted-sql-query",
+      "path": "vulnerable_app/app.py",
+      "start": { "line": 107, "col": 5 },
+      "end": { "line": 107, "col": 78 },
+      "extra": {
+        "severity": "ERROR",
+        "message": "Detected string formatting used to build a SQL statement. This can lead to SQL injection if the value is attacker-controlled. Use a parameterised query instead.",
+        "metadata": {
+          "cwe": ["CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')"],
+          "owasp": ["A03:2021 - Injection"]
+        }
+      }
+    },
+    {
+      "check_id": "python.lang.best-practice.logging.print-instead-of-logging",
+      "path": "vulnerable_app/app.py",
+      "start": { "line": 30, "col": 1 },
+      "end": { "line": 30, "col": 20 },
+      "extra": {
+        "severity": "INFO",
+        "message": "Consider using the logging module instead of print() for diagnostic output."
+      }
+    }
+  ],
+  "errors": [],
+  "paths": { "scanned": ["vulnerable_app/app.py"] }
+}

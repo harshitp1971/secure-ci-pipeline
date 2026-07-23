@@ -1,0 +1,53 @@
+{
+  "SchemaVersion": 2,
+  "ArtifactName": "cerberus-vulnerable-app:ci",
+  "ArtifactType": "container_image",
+  "Results": [
+    {
+      "Target": "cerberus-vulnerable-app:ci (debian 12.5)",
+      "Class": "os-pkgs",
+      "Type": "debian",
+      "Vulnerabilities": [
+        {
+          "VulnerabilityID": "CVE-2023-45853",
+          "PkgName": "zlib1g",
+          "InstalledVersion": "1:1.2.13.dfsg-1",
+          "FixedVersion": "",
+          "Severity": "CRITICAL",
+          "Title": "zlib: integer overflow and resultant heap-based buffer overflow in zipOpenNewFileInZip4_64"
+        },
+        {
+          "VulnerabilityID": "CVE-2024-2961",
+          "PkgName": "libc6",
+          "InstalledVersion": "2.36-9",
+          "FixedVersion": "2.36-9+deb12u7",
+          "Severity": "HIGH",
+          "Title": "glibc: Out of bounds write in the iconv() function may lead to remote code execution"
+        },
+        {
+          "VulnerabilityID": "CVE-2023-4911",
+          "PkgName": "libc6",
+          "InstalledVersion": "2.36-9",
+          "FixedVersion": "2.36-9+deb12u3",
+          "Severity": "MEDIUM",
+          "Title": "glibc: buffer overflow in ld.so leading to privilege escalation (Looney Tunables)"
+        }
+      ]
+    },
+    {
+      "Target": "Python",
+      "Class": "lang-pkgs",
+      "Type": "python-pkg",
+      "Vulnerabilities": [
+        {
+          "VulnerabilityID": "CVE-2018-18074",
+          "PkgName": "requests",
+          "InstalledVersion": "2.19.1",
+          "FixedVersion": "2.20.0",
+          "Severity": "CRITICAL",
+          "Title": "python-requests: Redirect from HTTPS to HTTP does not remove the Authorization header"
+        }
+      ]
+    }
+  ]
+}
