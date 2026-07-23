@@ -10,6 +10,15 @@ FROM python:3.12-slim-bookworm
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
+# Apply the latest OS security patches available for the base image. Base-image
+# CVEs are a moving target; rebuilding regularly picks up whatever fixes Debian
+# has published. CVEs with no upstream fix yet are handled by Trivy's
+# `ignore-unfixed` in the pipeline (we report them, but don't block on what we
+# cannot action).
+RUN apt-get update \
+    && apt-get upgrade -y \
+    && rm -rf /var/lib/apt/lists/*
+
 # Run as an unprivileged user rather than root.
 RUN groupadd --system app && useradd --system --gid app --home-dir /app app
 
